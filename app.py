@@ -157,6 +157,14 @@ else:
 
         with st.expander("View Individual Country Data"):
             st.dataframe(df, use_container_width=True)
+        csv = df.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            label="⬇️ Download Individual Country Data",
+            data=csv,
+            file_name=f"{country}_{indicator.replace(' ', '_')}.csv",
+            mime="text/csv"
+        )            
 
 # --------------------------------
 # 6. COUNTRY COMPARISON
@@ -237,21 +245,87 @@ else:
             use_container_width=True
         )
 
+
         with st.expander("View Country Comparison Dataset"):
             st.dataframe(
                 comparison_df,
                 use_container_width=True
             )
 
-    else:
+        comparison_csv = comparison_df.to_csv(
+            index=False
+        ).encode("utf-8")
 
-        st.warning(
-            "No comparison data is available for these selections."
+        st.download_button(
+            label="⬇️ Download Comparison Data",
+            data=comparison_csv,
+            file_name="EconScope_Country_Comparison.csv",
+            mime="text/csv"
+        )
+        
+
+# --------------------------------
+# 7. STATISTICAL ANALYSIS
+# --------------------------------
+
+st.header("📈 Statistical Analysis")
+
+st.write(
+    "Explore descriptive statistics for the selected economic data."
+)
+
+if not df.empty:
+
+    values = df["Value"]
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Mean", f"{values.mean():,.2f}")
+
+    with col2:
+        st.metric("Median", f"{values.median():,.2f}")
+
+    with col3:
+        st.metric(
+            "Standard Deviation",
+            f"{values.std():,.2f}" if len(values) > 1 else "N/A"
         )
 
+    col4, col5 = st.columns(2)
+
+    with col4:
+        st.metric("Minimum", f"{values.min():,.2f}")
+
+    with col5:
+        st.metric("Maximum", f"{values.max():,.2f}")
+
+    st.caption(
+        f"Statistical calculations are based on "
+        f"{len(values)} available annual observations "
+        f"for {country}."
+    )
+
+else:
+    st.info(
+        "Statistical analysis will appear when economic data is available."
+    )
+
 # --------------------------------
-# 7. FOOTER
+# 8. FOOTER
 # --------------------------------
+
+st.divider()
+
+st.caption(
+    "EconScope | Independent Economics Dashboard Project"
+)
+
+st.caption(
+    "Source: World Bank Open Data | "
+    "Missing observations are excluded from visualisations."
+)
+
 
 st.divider()
 
