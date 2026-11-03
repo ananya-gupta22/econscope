@@ -312,6 +312,133 @@ else:
     )
 
 # --------------------------------
+# CORRELATION ANALYSIS
+# --------------------------------
+
+st.divider()
+
+st.header("🔬 Economic Correlation Analysis")
+
+st.write(
+    "Explore the relationships between different economic "
+    "indicators for the selected country."
+)
+
+if start_year >= end_year:
+
+    st.warning("Please select a valid year range.")
+
+else:
+
+    correlation_data = None
+
+    with st.spinner("Retrieving indicators for correlation analysis..."):
+
+        for indicator_name, indicator_code in INDICATORS.items():
+
+            indicator_df = get_world_bank_data(
+                country_code,
+                indicator_code,
+                start_year,
+                end_year
+            )
+
+            if not indicator_df.empty:
+
+                indicator_df = indicator_df.rename(
+                    columns={"Value": indicator_name}
+                )
+
+                if correlation_data is None:
+
+                    correlation_data = indicator_df
+
+                else:
+
+                    correlation_data = pd.merge(
+                        correlation_data,
+                        indicator_df,
+                        on="Year",
+                        how="outer"
+                    )
+
+    if correlation_data is not None:
+
+        correlation_data = correlation_data.sort_values("Year")
+
+        available_indicators = [
+            name for name in INDICATORS.keys()
+            if name in correlation_data.columns
+        ]
+
+        if len(available_indicators) >= 2:
+
+            correlation_matrix = correlation_data[
+                available_indicators
+            ].corr(method="pearson", min_periods=3)
+
+            if correlation_matrix.notna().any().any():
+
+                correlation_fig = px.imshow(
+                    correlation_matrix,
+                    text_auto=".2f",
+                    color_continuous_scale="RdBu",
+                    zmin=-1,
+                    zmax=1,
+                    aspect="auto",
+                    title=f"Economic Correlation Matrix — {country}"
+                )
+
+                correlation_fig.update_layout(
+                    template="plotly_white",
+                    coloraxis_colorbar_title="Correlation"
+                )
+
+                st.plotly_chart(
+                    correlation_fig,
+                    use_container_width=True
+                )
+
+                st.subheader("Correlation Results")
+
+                st.dataframe(
+                    correlation_matrix.style.format("{:.2f}"),
+                    use_container_width=True
+                )
+
+                st.caption(
+                    "Pearson correlation coefficients are calculated "
+                    "using available paired annual observations. "
+                    "At least three paired observations are required."
+                )
+
+            else:
+
+                st.warning(
+                    "Insufficient overlapping observations "
+                    "to calculate correlations."
+                )
+
+        else:
+
+            st.warning(
+                "At least two economic indicators must have data."
+            )
+
+        with st.expander("View Data Used for Correlation Analysis"):
+
+            st.dataframe(
+                correlation_data,
+                use_container_width=True
+            )
+
+    else:
+
+        st.warning(
+            "Unable to retrieve sufficient economic data."
+        )
+
+# --------------------------------
 # 8. FOOTER
 # --------------------------------
 
