@@ -608,6 +608,159 @@ else:
 
 
 # --------------------------------
+# TIME-SERIES ANALYSIS
+# --------------------------------
+
+st.divider()
+
+st.header("📊 Economic Time-Series Analysis")
+
+st.write(
+    "Explore how major economic indicators have changed "
+    "over time using annual World Bank data."
+)
+
+time_series_indicators = [
+    "GDP Growth",
+    "Inflation",
+    "Unemployment",
+    "GDP Per Capita"
+]
+
+time_series_data = {}
+
+with st.spinner("Retrieving historical economic data..."):
+
+    for indicator_name in time_series_indicators:
+
+        if indicator_name in INDICATORS:
+
+            ts_df = get_world_bank_data(
+                country_code,
+                INDICATORS[indicator_name],
+                start_year,
+                end_year
+            )
+
+            if not ts_df.empty:
+
+                ts_df = ts_df[["Year", "Value"]].copy()
+
+                ts_df["Year"] = pd.to_numeric(
+                    ts_df["Year"], errors="coerce"
+                )
+
+                ts_df["Value"] = pd.to_numeric(
+                    ts_df["Value"], errors="coerce"
+                )
+
+                ts_df = ts_df.dropna()
+
+                time_series_data[indicator_name] = ts_df
+
+if time_series_data:
+
+    st.subheader("Historical Economic Trends")
+
+    for indicator_name, ts_df in time_series_data.items():
+
+        st.markdown(f"### {indicator_name}")
+
+        fig = px.line(
+            ts_df.sort_values("Year"),
+            x="Year",
+            y="Value",
+            markers=True,
+            title=f"{indicator_name} — {country}"
+        )
+
+        fig.update_layout(
+            template="plotly_white",
+            xaxis_title="Year",
+            yaxis_title=indicator_name,
+            hovermode="x unified"
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    st.subheader("Year-on-Year Changes")
+
+    for indicator_name, ts_df in time_series_data.items():
+
+        change_df = ts_df.sort_values("Year").copy()
+
+        change_df["Annual Change"] = (
+            change_df["Value"].diff()
+        )
+
+        st.markdown(f"**{indicator_name}**")
+
+        st.dataframe(
+            change_df.rename(
+                columns={
+                    "Year": "Year",
+                    "Value": "Indicator Value",
+                    "Annual Change": "Change from Previous Available Year"
+                }
+            ).style.format({
+                "Indicator Value": "{:,.2f}",
+                "Change from Previous Available Year": "{:,.2f}"
+            }),
+            use_container_width=True,
+            hide_index=True
+        )
+
+    with st.expander("View Complete Time-Series Dataset"):
+
+        combined_data = None
+
+        for name, ts_df in time_series_data.items():
+
+            temp = ts_df.rename(
+                columns={"Value": name}
+            )
+
+            if combined_data is None:
+                combined_data = temp
+            else:
+                combined_data = pd.merge(
+                    combined_data,
+                    temp,
+                    on="Year",
+                    how="outer"
+                )
+
+        combined_data = combined_data.sort_values("Year")
+
+        st.dataframe(
+            combined_data,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        csv_data = combined_data.to_csv(
+            index=False
+        ).encode("utf-8")
+
+        st.download_button(
+            "⬇️ Download Time-Series Data",
+            data=csv_data,
+            file_name="EconScope_Time_Series_Data.csv",
+            mime="text/csv"
+        )
+
+else:
+
+    st.warning(
+        "No time-series data is currently available "
+        "for the selected country and period."
+    )
+
+
+# --------------------------------
 # 8. FOOTER
 # --------------------------------
 
