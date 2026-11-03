@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import statsmodels.api as sm
 
 from data import get_world_bank_data, INDICATORS
 
@@ -438,6 +439,174 @@ else:
             "Unable to retrieve sufficient economic data."
         )
 
+
+# --------------------------------
+# ECONOMETRIC REGRESSION ANALYSIS
+# --------------------------------
+
+st.divider()
+
+st.header("📉 Econometric Regression Analysis")
+
+st.write(
+    "Explore the relationship between GDP growth, "
+    "inflation and unemployment using Ordinary Least Squares."
+)
+
+if start_year >= end_year:
+
+    st.warning("Please select a valid year range.")
+
+else:
+
+    regression_data = None
+
+    regression_indicators = {
+        "GDP Growth": INDICATORS["GDP Growth"],
+        "Inflation": INDICATORS["Inflation"],
+        "Unemployment": INDICATORS["Unemployment"]
+    }
+
+    with st.spinner("Preparing regression dataset..."):
+
+        for name, code in regression_indicators.items():
+
+            temp_df = get_world_bank_data(
+                country_code,
+                code,
+                start_year,
+                end_year
+            )
+
+            if not temp_df.empty:
+
+                temp_df = temp_df.rename(
+                    columns={"Value": name}
+                )
+
+                if regression_data is None:
+
+                    regression_data = temp_df
+
+                else:
+
+                    regression_data = pd.merge(
+                        regression_data,
+                        temp_df,
+                        on="Year",
+                        how="inner"
+                    )
+
+    if regression_data is not None:
+
+        regression_data = regression_data.dropna()
+
+        if len(regression_data) >= 8:
+
+            # Dependent variable
+            y = regression_data["GDP Growth"]
+
+            # Independent variables
+            X = regression_data[
+                ["Inflation", "Unemployment"]
+            ]
+
+            # Add intercept
+            X = sm.add_constant(X)
+
+            # Fit OLS model
+            model = sm.OLS(y, X).fit()
+
+            st.subheader("Regression Results")
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    "R-squared",
+                    f"{model.rsquared:.3f}"
+                )
+
+            with col2:
+                st.metric(
+                    "Adjusted R-squared",
+                    f"{model.rsquared_adj:.3f}"
+                )
+
+            with col3:
+                st.metric(
+                    "Observations",
+                    int(model.nobs)
+                )
+
+            st.subheader("Regression Coefficients")
+
+            results_df = pd.DataFrame({
+                "Coefficient": model.params,
+                "P-value": model.pvalues
+            })
+
+            st.dataframe(
+                results_df.style.format("{:.4f}"),
+                use_container_width=True
+            )
+
+            st.subheader("Actual vs Predicted GDP Growth")
+
+            regression_data = regression_data.copy()
+
+            regression_data["Predicted GDP Growth"] = (
+                model.predict(X)
+            )
+
+            fig = px.scatter(
+                regression_data,
+                x="GDP Growth",
+                y="Predicted GDP Growth",
+                hover_data=["Year"],
+                title="Actual vs Predicted GDP Growth",
+                labels={
+                    "GDP Growth": "Actual GDP Growth (%)",
+                    "Predicted GDP Growth": "Predicted GDP Growth (%)"
+                }
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+            with st.expander("View Full Regression Summary"):
+
+                st.text(model.summary().as_text())
+
+            st.caption(
+                "Model: GDP Growth = β0 + β1(Inflation) "
+                "+ β2(Unemployment) + ε"
+            )
+
+            st.warning(
+                "Exploratory OLS results are not evidence of causation. "
+                "The annual sample may be small, and time-series "
+                "properties, omitted variables and serial correlation "
+                "can affect the estimates. Further econometric testing "
+                "is required before drawing conclusions."
+            )
+
+        else:
+
+            st.warning(
+                "Insufficient overlapping annual observations. "
+                "At least 8 complete observations are required."
+            )
+
+    else:
+
+        st.warning(
+            "Unable to retrieve the data required for regression."
+        )
+
+
 # --------------------------------
 # 8. FOOTER
 # --------------------------------
@@ -453,14 +622,3 @@ st.caption(
     "Missing observations are excluded from visualisations."
 )
 
-
-st.divider()
-
-st.caption(
-    "EconScope | Independent Economics Dashboard Project"
-)
-
-st.caption(
-    "Source: World Bank Open Data | "
-    "Missing observations are excluded from visualisations."
-)
