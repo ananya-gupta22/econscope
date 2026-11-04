@@ -759,6 +759,122 @@ else:
         "for the selected country and period."
     )
 
+# --------------------------------
+# AUTOMATED ECONOMIC INSIGHTS
+# --------------------------------
+
+st.divider()
+
+st.header("💡 Automated Economic Insights")
+
+st.write(
+    "Discover important patterns and changes in the "
+    "selected country's economic indicators."
+)
+
+if time_series_data:
+
+    for indicator_name, ts_df in time_series_data.items():
+
+        insight_df = ts_df[
+            ["Year", "Value"]
+        ].copy()
+
+        insight_df = insight_df.dropna().sort_values("Year")
+
+        if len(insight_df) >= 2:
+
+            first_value = insight_df.iloc[0]["Value"]
+            last_value = insight_df.iloc[-1]["Value"]
+
+            first_year = int(insight_df.iloc[0]["Year"])
+            last_year = int(insight_df.iloc[-1]["Year"])
+
+            highest = insight_df.loc[
+                insight_df["Value"].idxmax()
+            ]
+
+            lowest = insight_df.loc[
+                insight_df["Value"].idxmin()
+            ]
+
+            overall_change = last_value - first_value
+
+            st.subheader(indicator_name)
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    "Starting Value",
+                    f"{first_value:,.2f}",
+                    help=f"Year: {first_year}"
+                )
+
+            with col2:
+                st.metric(
+                    "Latest Value",
+                    f"{last_value:,.2f}",
+                    help=f"Year: {last_year}"
+                )
+
+            with col3:
+                st.metric(
+                    "Overall Change",
+                    f"{overall_change:+,.2f}"
+                )
+
+            st.write(
+                f"**Highest observation:** "
+                f"{highest['Value']:,.2f} in "
+                f"{int(highest['Year'])}."
+            )
+
+            st.write(
+                f"**Lowest observation:** "
+                f"{lowest['Value']:,.2f} in "
+                f"{int(lowest['Year'])}."
+            )
+
+            if overall_change > 0:
+                st.success(
+                    f"{indicator_name} increased between "
+                    f"{first_year} and {last_year}."
+                )
+
+            elif overall_change < 0:
+                st.info(
+                    f"{indicator_name} decreased between "
+                    f"{first_year} and {last_year}."
+                )
+
+            else:
+                st.info(
+                    f"{indicator_name} remained unchanged "
+                    "between the first and last observations."
+                )
+
+            st.divider()
+
+        else:
+
+            st.info(
+                f"Insufficient observations for "
+                f"{indicator_name}."
+            )
+
+    st.caption(
+        "Insights are generated using observed annual data. "
+        "They describe historical changes and do not establish "
+        "causal relationships or predict future outcomes."
+    )
+
+else:
+
+    st.warning(
+        "Economic insights will appear when data is available."
+    )
+
 
 # --------------------------------
 # 8. FOOTER
