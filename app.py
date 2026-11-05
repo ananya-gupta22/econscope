@@ -17,6 +17,110 @@ st.set_page_config(
 )
 
 # --------------------------------
+# PROFESSIONAL UI STYLING
+# --------------------------------
+
+st.markdown("""
+<style>
+
+/* Main application background */
+.stApp {
+    background-color: #0B1120;
+    color: #E5E7EB;
+}
+
+/* Main content area */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    max-width: 1450px;
+}
+
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    background-color: #111C30;
+    border-right: 1px solid #263750;
+}
+
+/* Sidebar headings */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: #60A5FA;
+}
+
+/* Main headings */
+h1, h2, h3 {
+    color: #F8FAFC !important;
+}
+
+/* Paragraphs */
+p {
+    color: #CBD5E1;
+}
+
+/* Metric cards */
+[data-testid="stMetric"] {
+    background-color: #16243A;
+    border: 1px solid #263750;
+    padding: 18px;
+    border-radius: 12px;
+}
+
+/* Metric labels */
+[data-testid="stMetricLabel"] {
+    color: #94A3B8;
+}
+
+/* Metric values */
+[data-testid="stMetricValue"] {
+    color: #60A5FA;
+}
+
+/* Buttons */
+.stButton > button,
+.stDownloadButton > button {
+    background-color: #2563EB;
+    color: white;
+    border-radius: 8px;
+    border: none;
+}
+
+/* Button hover */
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+    background-color: #1D4ED8;
+    color: white;
+    border: none;
+}
+
+/* Dividers */
+hr {
+    border-color: #263750;
+}
+
+/* Dataframes */
+[data-testid="stDataFrame"] {
+    border: 1px solid #263750;
+    border-radius: 10px;
+}
+
+/* Expanders */
+[data-testid="stExpander"] {
+    background-color: #111C30;
+    border: 1px solid #263750;
+    border-radius: 10px;
+}
+
+/* Select boxes */
+[data-testid="stSelectbox"] {
+    border-radius: 8px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# --------------------------------
 # 2. COUNTRY INFORMATION
 # --------------------------------
 
@@ -38,7 +142,13 @@ COUNTRIES = {
 # --------------------------------
 
 st.title("📊 EconScope")
-st.subheader("Explore the World Through Economic Data")
+st.markdown(
+    "### Explore the World Through Economic Data"
+)
+
+st.caption(
+    "GLOBAL ECONOMIC INTELLIGENCE | WORLD BANK OPEN DATA"
+)
 
 st.write(
     "An interactive platform to explore macroeconomic "
@@ -86,6 +196,15 @@ country = st.selectbox(
 country_code = COUNTRIES[country]
 indicator_code = INDICATORS[indicator]
 
+# Initialise variables
+df = pd.DataFrame()
+
+unit = (
+    "USD"
+    if indicator == "GDP Per Capita"
+    else "%"
+)
+
 if start_year >= end_year:
 
     st.error("End year must be later than start year.")
@@ -111,11 +230,7 @@ else:
 
         col1, col2, col3 = st.columns(3)
 
-        unit = (
-            "USD"
-            if indicator == "GDP Per Capita"
-            else "%"
-        )
+    
 
         with col1:
             value = (
@@ -264,6 +379,173 @@ else:
             mime="text/csv"
         )
         
+
+# --------------------------------
+# COUNTRY RANKING SYSTEM
+# --------------------------------
+
+st.divider()
+
+st.header("🏆 Global Economic Rankings")
+
+st.write(
+    "Rank countries according to their economic "
+    "indicators and compare their performance."
+)
+
+if start_year >= end_year:
+
+    st.warning("Please select a valid year range.")
+
+else:
+
+    ranking_year = st.selectbox(
+        "Select Year for Country Rankings",
+        list(range(start_year, end_year + 1)),
+        index=end_year - start_year,
+        key="ranking_year"
+    )
+
+    ranking_order = st.radio(
+        "Select Ranking Order",
+        ["Highest to Lowest", "Lowest to Highest"],
+        horizontal=True,
+        key="ranking_order"
+    )
+
+    ranking_data = []
+
+    with st.spinner("Calculating country rankings..."):
+
+        for country_name, code in COUNTRIES.items():
+
+            country_df = get_world_bank_data(
+                code,
+                indicator_code,
+                start_year,
+                end_year
+            )
+
+            if not country_df.empty:
+
+                country_df["Year"] = pd.to_numeric(
+                    country_df["Year"],
+                    errors="coerce"
+                )
+
+                country_df["Value"] = pd.to_numeric(
+                    country_df["Value"],
+                    errors="coerce"
+                )
+
+                selected_year_data = country_df[
+                    country_df["Year"] == ranking_year
+                ]
+
+                if not selected_year_data.empty:
+
+                    value = selected_year_data.iloc[-1]["Value"]
+
+                    if pd.notna(value):
+
+                        ranking_data.append({
+                            "Country": country_name,
+                            "Year": ranking_year,
+                            "Value": value
+                        })
+
+    if ranking_data:
+
+        ranking_df = pd.DataFrame(ranking_data)
+
+        ascending_order = (
+            ranking_order == "Lowest to Highest"
+        )
+
+        ranking_df = ranking_df.sort_values(
+            by="Value",
+            ascending=ascending_order
+        ).reset_index(drop=True)
+
+        ranking_df.insert(
+            0,
+            "Rank",
+            range(1, len(ranking_df) + 1)
+        )
+
+        st.subheader(
+            f"{indicator} Rankings — {ranking_year}"
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.metric(
+                "Countries Ranked",
+                len(ranking_df)
+            )
+
+        with col2:
+            st.metric(
+                "Top Ranked Country",
+                ranking_df.iloc[0]["Country"]
+            )
+
+        # Ranking table
+
+        st.dataframe(
+            ranking_df.style.format({
+                "Value": "{:,.2f}"
+            }),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        # Ranking chart
+
+        ranking_fig = px.bar(
+            ranking_df,
+            x="Value",
+            y="Country",
+            orientation="h",
+            color="Value",
+            text_auto=".2f",
+            color_continuous_scale="Blues",
+            title=f"Country Rankings: {indicator}"
+        )
+
+        ranking_fig.update_layout(
+            template="plotly_white",
+            xaxis_title=indicator,
+            yaxis_title="Country",
+            yaxis={"categoryorder": "total ascending"}
+        )
+
+        st.plotly_chart(
+            ranking_fig,
+            use_container_width=True
+        )
+
+        # Download ranking dataset
+
+        ranking_csv = ranking_df.to_csv(
+            index=False
+        ).encode("utf-8")
+
+        st.download_button(
+            label="⬇️ Download Country Rankings",
+            data=ranking_csv,
+            file_name=f"EconScope_{indicator.replace(' ', '_')}_Rankings_{ranking_year}.csv",
+            mime="text/csv"
+        )
+
+    else:
+
+        st.warning(
+            "No ranking data available for the selected year."
+        )
+
+
 
 # --------------------------------
 # 7. STATISTICAL ANALYSIS
