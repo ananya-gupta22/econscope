@@ -168,6 +168,72 @@ else:
 
 
             # --------------------------------
+            # AUTOMATIC ECONOMIC INTERPRETATION
+            # --------------------------------
+
+            st.subheader("Economic Interpretation")
+
+            st.write(
+                "The following interpretations explain the estimated "
+                "relationships in the selected country's regression model."
+            )
+
+            for variable in ["Inflation", "Unemployment"]:
+
+                coefficient = model.params[variable]
+                p_value = model.pvalues[variable]
+
+                st.markdown(f"**{variable}**")
+
+                if coefficient > 0:
+                    direction = "increase"
+                elif coefficient < 0:
+                    direction = "decrease"
+                else:
+                    direction = "no estimated change"
+
+                st.write(
+                    f"A one-percentage-point increase in {variable.lower()} "
+                    f"is associated with an estimated "
+                    f"{abs(coefficient):.4f} percentage-point "
+                    f"{direction} in GDP growth, holding the other "
+                    f"explanatory variable constant."
+                )
+
+                if p_value < 0.01:
+                    significance = "statistically significant at the 1% level"
+                elif p_value < 0.05:
+                    significance = "statistically significant at the 5% level"
+                elif p_value < 0.10:
+                    significance = "statistically significant at the 10% level"
+                else:
+                    significance = "not statistically significant at the 10% level"
+
+                st.write(
+                    f"The coefficient is {significance} "
+                    f"(p-value: {p_value:.4f})."
+                )
+
+                st.divider()
+
+            # R-squared interpretation
+
+            st.markdown("**Model Explanatory Power**")
+
+            st.write(
+                f"The model has an R-squared of {model.rsquared:.3f}. "
+                f"This means that approximately "
+                f"{model.rsquared * 100:.1f}% of the variation in GDP growth "
+                f"in this sample is explained by inflation and unemployment."
+            )
+
+            st.caption(
+                "Interpretation note: These are conditional statistical "
+                "associations, not causal effects. Statistical significance "
+                "does not establish economic importance or causality."
+            )
+
+            # --------------------------------
             # ACTUAL VS PREDICTED
             # --------------------------------
 
@@ -195,7 +261,7 @@ else:
                 fig,
                 use_container_width=True
             )
-
+       
 
             # --------------------------------
             # ECONOMETRIC DIAGNOSTICS
