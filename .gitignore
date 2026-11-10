@@ -1,17 +1,22 @@
+
 # Python cache
 __pycache__/
 *.py[cod]
 
 # Virtual environment
-.venv/
 venv/
+.venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
 
 # Environment variables
 .env
 
-# VS Code settings
-.vscode/
-
-# System files
+# Operating system files
 .DS_Store
 Thumbs.db
+
+# VS Code settings
+.vscode/
