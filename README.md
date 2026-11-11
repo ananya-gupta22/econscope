@@ -21,6 +21,22 @@ The dashboard provides an environment to:
 - Evaluate the availability and completeness of economic data.
 - Generate insights from historical economic trends.
 
+## 🖥️ Dashboard Preview
+
+### Home Page
+![EconScope Home](screenshots/home.png)
+
+### Country Comparison
+![Country Comparison](screenshots/country_comparison.png)
+
+### Econometric Regression Analysis
+![Regression Analysis](screenshots/regression_analysis.png)
+
+### Data Quality Overview
+![Data Quality Overview](screenshots/data_quality.png)
+
+---
+
 ## 🚀 Key Features
 
 ### 1. Economic Data Exploration
