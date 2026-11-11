@@ -20,3 +20,4 @@ Thumbs.db
 
 # VS Code settings
 .vscode/
+app_backup_before_navigation.py*
